@@ -22,6 +22,6 @@ $EXE -c ./good.aln
 $EXE -s ./good.aln
 
 echo "check bad"
-$EXE ./bad.aln
-$EXE -n ./bad.aln
+$EXE ./bad.aln || true
+$EXE -n ./bad.aln || true
 
