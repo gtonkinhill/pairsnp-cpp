@@ -13,7 +13,7 @@ before_install:
   - cmake . && make && sudo make install && cd ..
 
 install:
-  - "./touch *"
+  - "touch *"
   - "./configure"
   - "make"
   - "make install"
