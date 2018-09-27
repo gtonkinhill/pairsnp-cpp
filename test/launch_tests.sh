@@ -1,4 +1,4 @@
-EXE="../src/pairsnp"
+EXE="pairsnp"
 
 echo "check version"
 $EXE -v
