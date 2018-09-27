@@ -1,5 +1,3 @@
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
 ./cpp/update_timestamp.sh
+*.o
+./src/pairsnp
