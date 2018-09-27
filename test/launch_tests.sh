@@ -4,24 +4,22 @@ echo "check version"
 $EXE -v
 
 echo "check singleton"
-$EXE ./singleton.aln
-$EXE -n ./singleton.aln
+$EXE ./singleton.aln > temp.txt
+cmp temp.txt test_singleton.txt
 
 echo "check lowercase"
-$EXE ./lowercase.aln
-$EXE -n ./lowercase.aln
+$EXE ./lowercase.aln > temp.txt
+cmp temp.txt test_lowercase.txt
 
 echo "check ambig"
-$EXE ./ambig.aln
-$EXE -n ./ambig.aln
+$EXE ./ambig.aln > temp.txt
+cmp temp.txt test_ambig.txt
 
-echo "check good"
-$EXE ./good.aln
-$EXE -n ./good.aln
-$EXE -c ./good.aln
-$EXE -s ./good.aln
+$EXE -n ./ambig.aln > temp.txt
+cmp temp.txt test_ambig_with_n.txt
 
 echo "check bad"
-$EXE ./bad.aln || true
-$EXE -n ./bad.aln || true
+$EXE ./bad.aln > temp.txt || true
+cmp temp.txt test_bad.txt
 
+rm temp.txt
