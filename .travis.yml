@@ -16,7 +16,7 @@ install:
   - "touch *"
   - "./configure"
   - "make"
-  - "make install"
+  - "sudo make install"
 
 script:
   - "cd ./test"
