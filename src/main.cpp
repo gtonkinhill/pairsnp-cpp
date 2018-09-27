@@ -150,6 +150,11 @@ int main(int argc, char *argv[])
       seq.name.erase(it);
     }
 
+   if(seq_length!=seq.seq.length()){
+      std::cout << "Error: sequences are not all of the same length!" << std::endl;
+      return 1;
+   }
+
     seq_names.push_back(seq.name);
 
     if ((m_i.capacity() - 2*n_snps)<100){
