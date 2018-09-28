@@ -1,3 +1,4 @@
 ./cpp/update_timestamp.sh
 *.o
 ./src/pairsnp
+./conda_builds/*

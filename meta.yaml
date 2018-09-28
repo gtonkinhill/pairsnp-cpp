@@ -1,0 +1,40 @@
+
+{% set version = "0.0.1" %}
+
+package:
+  name: pairsnp
+  version: 0.0.1
+
+source:
+  git_url: https://github.com/gtonkinhill/pairsnp-cpp
+  git_rev: 9a2c79c58ce144809834ab4ec1602f55fe10ef42
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - automake
+    - autoconf
+    - gcc   # [not osx]
+    - llvm  # [osx]
+  host:
+    - openblas
+    - armadillo
+  run:
+    - libgcc    # [not osx]
+    - openblas
+    - armadillo
+
+about:
+  home: https://github.com/gtonkinhill/pairsnp-cpp
+  license: MIT
+  summary: "pairsnp calculates pairwise SNP distance matrices from multiple sequence alignment fasta files."
+  license_file: LICENSE
+
+
+test:
+  commands:
+    - pairsnp -h
