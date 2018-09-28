@@ -7,7 +7,6 @@ package:
 
 source:
   git_url: https://github.com/gtonkinhill/pairsnp-cpp
-  git_rev: 9a2c79c58ce144809834ab4ec1602f55fe10ef42
 
 build:
   number: 0
