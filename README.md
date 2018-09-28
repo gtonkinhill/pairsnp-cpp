@@ -1,4 +1,4 @@
-# pairsnp-cpp
+# pairsnp-c++
 
 
 ## Installation
