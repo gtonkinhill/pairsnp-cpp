@@ -1,5 +1,6 @@
 # pairsnp-c++
 
+[![Travis-CI Build Status](https://travis-ci.com/gtonkinhill/pairsnp-cpp.svg?branch=master)](https://travis-ci.com/gtonkinhill/pairsnp-cpp)
 
 ## Installation
 
