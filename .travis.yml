@@ -20,3 +20,6 @@ script:
   - "cd ./test"
   - "./launch_tests.sh"
 
+
+notifications:
+    slack: pathogens:8NUkMUXlMNecj9NXnwTKbBQU
