@@ -257,8 +257,9 @@ int main(int argc, char *argv[])
 
     umat differing_snps = umat(n_seqs, n_seqs);
     for (int i=0 ; i<n_seqs; i++){
-      for(int j=0; j<n_seqs; j++){
+      for(int j=i; j<n_seqs; j++){
         differing_snps(i,j) = total_snps(i) + total_snps(j);
+        differing_snps(j,i) = differing_snps(i,j);
       }
     }
     sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
@@ -285,8 +286,9 @@ int main(int argc, char *argv[])
       uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
 
       for (int i=0 ; i<n_seqs; i++){
-        for(int j=0; j<n_seqs; j++){
+        for(int j=i; j<n_seqs; j++){
           diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
+          diff_n(j,i) = diff(i,j);
         }
       }
       // cout << "calc diff.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
