@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
       for (int i=0 ; i<n_seqs; i++){
         for(int j=i; j<n_seqs; j++){
           diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
-          diff_n(j,i) = diff(i,j);
+          diff_n(j,i) = diff_n(i,j);
         }
       }
       // cout << "calc diff.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
