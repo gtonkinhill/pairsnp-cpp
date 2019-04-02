@@ -12,7 +12,6 @@
 
 #define VERSION "0.0.1"
 #define EXENAME "pairsnp"
-
 using namespace arma;
 
 void show_help(int retcode)
@@ -67,7 +66,7 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  
+
   // cout << "warmup. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
@@ -81,8 +80,9 @@ int main(int argc, char *argv[])
   // Use first sequence to set size of arrays
   l = ks.read(seq);
   int seq_length = seq.seq.length();
-  int allele_counts[5][seq_length];
-  memset(allele_counts, 0, 5*seq_length*sizeof(int));
+  // int allele_counts[5][seq_length] = {0};
+  // memset(allele_counts, 0, 5*seq_length*sizeof(int));
+  std::vector<std::vector<int>> allele_counts(5, std::vector<int>(seq_length));
 
   while((l = ks.read(seq)) >= 0) {
     for(int j=0; j<seq_length; j++){
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   }
   close(fp);
 
-  
+
   // cout << "initial read.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
@@ -123,17 +123,24 @@ int main(int argc, char *argv[])
     max_allele = -1;
   }
 
-  
+  // Find the total number of SNPs
+  int n_total_snps = seq_length*n_seqs;
+  for(int j=0; j<seq_length; j++){
+    n_total_snps =  n_total_snps - allele_counts[consensus(j)][j];
+  }
+
+
   // cout << "consensus calc.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
   // create matrix to store snp locations
+  // TODO: we already know this!
   std::vector<uint> m_i;
   std::vector<uint> m_j;
   std::vector<uint> m_x;
-  m_i.reserve(50000);
-  m_j.reserve(50000);
-  m_x.reserve(50000);
+  m_i.reserve(n_total_snps);
+  m_j.reserve(n_total_snps);
+  m_x.reserve(n_total_snps);
 
   // open a new stream to the fasta file TODO: I think there's a cleaner way of doing this.
   int fp2 = open(fasta, O_RDONLY);
@@ -145,6 +152,7 @@ int main(int argc, char *argv[])
 
   while((l = ks2.read(seq)) >= 0) {
     // Record sequence names
+    // seq.name.replace(">","")
     auto it = std::find(seq.name.begin(), seq.name.end(), '>');
     if (it != seq.name.end()){
       seq.name.erase(it);
@@ -157,12 +165,12 @@ int main(int argc, char *argv[])
 
     seq_names.push_back(seq.name);
 
-    if ((m_i.capacity() - 2*n_snps)<100){
-      // Reserve memory
-      m_i.reserve( 2*m_i.capacity() );
-      m_j.reserve( 2*m_j.capacity() );
-      m_x.reserve( 2*m_x.capacity() );
-    }
+    // if ((m_i.capacity() - 2*n_snps)<100){
+    //   // Reserve memory
+    //   m_i.reserve( 2*m_i.capacity() );
+    //   m_j.reserve( 2*m_j.capacity() );
+    //   m_x.reserve( 2*m_x.capacity() );
+    // }
     for(int j=0; j<seq_length; j++){
       temp_char = seq.seq[j];
       if((((temp_char=='A') || (temp_char=='a')) && (consensus(j)!=0))){
@@ -195,7 +203,7 @@ int main(int argc, char *argv[])
     n += 1;
   }
 
-  
+
   // cout << "loading snp vecs.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
@@ -203,7 +211,7 @@ int main(int argc, char *argv[])
   uvec m_i_vec = conv_to< uvec >::from(m_i);
   uvec m_j_vec = conv_to< uvec >::from(m_j);
 
-  
+
   // cout << "convert to uvec.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
@@ -248,7 +256,7 @@ int main(int argc, char *argv[])
 
   // cout << "calc similarity matrix.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
-  
+
   if(dist){
     umat diff_n = umat(sparse_matrix_N * sparse_matrix_N.t());
     comp_snps = comp_snps + diff_n;
@@ -291,11 +299,11 @@ int main(int argc, char *argv[])
       }
       // cout << "calc diff.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
       // begin_time = clock();
-      
+
       comp_snps = differing_snps - umat(binary_snps * binary_snps.t()) - comp_snps - diff_n;
     }
   }
-  
+
   // cout << "calc remaining dist.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
@@ -311,10 +319,3 @@ int main(int argc, char *argv[])
   return 0;
 
   }
-
-
-
-
-
-
-

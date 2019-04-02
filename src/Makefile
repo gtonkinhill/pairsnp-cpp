@@ -174,7 +174,7 @@ CPPFLAGS =
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS =  -std=c++1y -g -O3
+CXXFLAGS =  -std=c++1y -g -O3 -DARMA_64BIT_WORD
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
