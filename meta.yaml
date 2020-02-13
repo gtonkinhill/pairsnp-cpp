@@ -1,9 +1,9 @@
 
-{% set version = "0.0.1" %}
+{% set version = "0.1.0" %}
 
 package:
   name: pairsnp
-  version: 0.0.1
+  version: 0.1.0
 
 source:
   git_url: https://github.com/gtonkinhill/pairsnp-cpp
@@ -17,8 +17,7 @@ requirements:
     - {{ compiler('c') }}
     - automake
     - autoconf
-    - gcc   # [not osx]
-    - llvm  # [osx]
+    - gcc_linux-64   # [not osx]
   host:
     - openblas
     - armadillo

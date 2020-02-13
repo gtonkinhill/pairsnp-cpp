@@ -218,105 +218,199 @@ int main(int argc, char *argv[])
 
   uvec idsA = find(m_x_vec == 1); // Find indices
   umat locations(2, idsA.size());
-  locations.row(0) = m_i_vec.elem(idsA).t();
-  locations.row(1) = m_j_vec.elem(idsA).t();
-  sp_umat sparse_matrix_A(locations, ones<uvec>(idsA.size()), n_seqs, seq_length);
+  locations.row(1) = m_i_vec.elem(idsA).t();
+  locations.row(0) = m_j_vec.elem(idsA).t();
+  sp_umat sparse_matrix_A(locations, ones<uvec>(idsA.size()), seq_length, n_seqs);
 
   uvec idsC = find(m_x_vec == 2); // Find indices
   locations.set_size(2, idsC.size());
-  locations.row(0) = m_i_vec.elem(idsC).t();
-  locations.row(1) = m_j_vec.elem(idsC).t();
-  sp_umat sparse_matrix_C(locations, ones<uvec>(idsC.size()), n_seqs, seq_length);
+  locations.row(1) = m_i_vec.elem(idsC).t();
+  locations.row(0) = m_j_vec.elem(idsC).t();
+  sp_umat sparse_matrix_C(locations, ones<uvec>(idsC.size()), seq_length, n_seqs);
 
   uvec idsG = find(m_x_vec == 3); // Find indices
   locations.set_size(2, idsG.size());
-  locations.row(0) = m_i_vec.elem(idsG).t();
-  locations.row(1) = m_j_vec.elem(idsG).t();
-  sp_umat sparse_matrix_G(locations, ones<uvec>(idsG.size()), n_seqs, seq_length);
+  locations.row(1) = m_i_vec.elem(idsG).t();
+  locations.row(0) = m_j_vec.elem(idsG).t();
+  sp_umat sparse_matrix_G(locations, ones<uvec>(idsG.size()), seq_length, n_seqs);
 
   uvec idsT = find(m_x_vec == 4); // Find indices
   locations.set_size(2, idsT.size());
-  locations.row(0) = m_i_vec.elem(idsT).t();
-  locations.row(1) = m_j_vec.elem(idsT).t();
-  sp_umat sparse_matrix_T(locations, ones<uvec>(idsT.size()), n_seqs, seq_length);
+  locations.row(1) = m_i_vec.elem(idsT).t();
+  locations.row(0) = m_j_vec.elem(idsT).t();
+  sp_umat sparse_matrix_T(locations, ones<uvec>(idsT.size()), seq_length, n_seqs);
 
   uvec idsN = find(m_x_vec == 5); // Find indices
   locations.set_size(2, idsN.size());
-  locations.row(0) = m_i_vec.elem(idsN).t();
-  locations.row(1) = m_j_vec.elem(idsN).t();
-  sp_umat sparse_matrix_N(locations, ones<uvec>(idsN.size()), n_seqs, seq_length);
+  locations.row(1) = m_i_vec.elem(idsN).t();
+  locations.row(0) = m_j_vec.elem(idsN).t();
+  sp_umat sparse_matrix_N(locations, ones<uvec>(idsN.size()), seq_length, n_seqs);
 
   // cout << "convert to sparse.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
-  umat comp_snps = umat(sparse_matrix_A * sparse_matrix_A.t());
-  comp_snps = comp_snps + umat(sparse_matrix_C * sparse_matrix_C.t());
-  comp_snps = comp_snps + umat(sparse_matrix_G * sparse_matrix_G.t());
-  comp_snps = comp_snps + umat(sparse_matrix_T * sparse_matrix_T.t());
+  sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
+
+
+  // build some matrices we'll need to deal with column where the consensus is 'N'
+  umat total_n = umat(sum(sparse_matrix_N, 0));
+  uvec cons_idsN = find(consensus == 4); // Find indices
+  umat matrix_n_cols = zeros<umat>(cons_idsN.size(), n_seqs);
+
+  cout << "total_n: " << total_n << endl;
+  cout << "cons_idsN: " << cons_idsN << endl;
+  cout << "matrix_n_cols: " << matrix_n_cols << endl;
+
+  if(!count_n){
+    sp_umat t_binary_snps = binary_snps.t();
+    for (int i=0; i<cons_idsN.size(); i++){
+      sp_umat col(t_binary_snps.col(cons_idsN(i)));
+      for (arma::sp_umat::iterator it = col.begin(); it != col.end(); ++it) {
+        matrix_n_cols(i, it.row()) = 1;
+      }
+    }
+
+    cout << "matrix_n_cols: " << matrix_n_cols << endl;
+
+    umat  cons_snps_N = matrix_n_cols.t() * matrix_n_cols;
+    uvec  tot_cons_snps_N = uvec(sum(matrix_n_cols, 0));
+  }
+
+
+  for (size_t i = 0; i < 1; i++) {
+      umat comp_snps = umat(sparse_matrix_A.t() * sparse_matrix_A.col(i));
+      comp_snps = comp_snps + umat(sparse_matrix_C.t() * sparse_matrix_C.col(i));
+      comp_snps = comp_snps + umat(sparse_matrix_G.t() * sparse_matrix_G.col(i));
+      comp_snps = comp_snps + umat(sparse_matrix_T.t() * sparse_matrix_T.col(i));
+
+      cout << "comp_snps1: " << comp_snps << endl;
+
+      if(dist){
+        umat diff_n = umat(sparse_matrix_N.t() * sparse_matrix_N.col(i));
+        comp_snps = comp_snps + diff_n;
+
+        cout << "comp_snps2: " << comp_snps << endl;
+
+        sp_umat total_snps = sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0);
+
+        cout << "total_snps: " << total_snps << endl;
+
+        umat differing_snps = umat(n_seqs, 1);
+        for(int j=0; j<n_seqs; j++){
+          differing_snps(j,0) = total_snps(i) + total_snps(j);
+        }
+
+        cout << "differing_snps: " << differing_snps << endl;
+
+        cout << "binary_snps: " << umat(binary_snps.t() * binary_snps.col(i)) << endl;
+
+        if(count_n){
+          cout << "HERE!! " << endl;
+          comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps;
+        } else {
+
+          cout << "matrix_n_cols: " << matrix_n_cols << endl;
+
+          umat  cons_snps_N = matrix_n_cols.t() * matrix_n_cols.col(i);
+          uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
+
+          cout << "cons_snps_N: " << cons_snps_N << endl;
+          cout << "tot_cons_snps_N: " << tot_cons_snps_N << endl;
+
+          // for(int j=0; j<n_seqs; j++){
+          //   diff_n(j) = total_n(i) + total_n(j) - 2*diff_n(j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(j);
+          // }
+
+            //     for (int i=0 ; i<n_seqs; i++){
+  //       for(int j=i; j<n_seqs; j++){
+  //         diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
+  //         diff_n(j,i) = diff_n(i,j);
+  //       }
+  //     }
+
+          comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps - diff_n;
+          
+        }
+
+        cout << "comp_snps3: " << comp_snps << endl;
+        
+      }
+
+
+
+
+  }
+
+
+
+  // umat comp_snps = umat(sparse_matrix_A * sparse_matrix_A.t());
+  // comp_snps = comp_snps + umat(sparse_matrix_C * sparse_matrix_C.t());
+  // comp_snps = comp_snps + umat(sparse_matrix_G * sparse_matrix_G.t());
+  // comp_snps = comp_snps + umat(sparse_matrix_T * sparse_matrix_T.t());
 
   // cout << "calc similarity matrix.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
   // begin_time = clock();
 
-  if(dist){
-    umat diff_n = umat(sparse_matrix_N * sparse_matrix_N.t());
-    comp_snps = comp_snps + diff_n;
+  // if(dist){
+  //   umat diff_n = umat(sparse_matrix_N * sparse_matrix_N.t());
+  //   comp_snps = comp_snps + diff_n;
 
-    sp_umat total_snps = sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 1);
+  //   sp_umat total_snps = sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 1);
 
-    umat differing_snps = umat(n_seqs, n_seqs);
-    for (int i=0 ; i<n_seqs; i++){
-      for(int j=i; j<n_seqs; j++){
-        differing_snps(i,j) = total_snps(i) + total_snps(j);
-        differing_snps(j,i) = differing_snps(i,j);
-      }
-    }
-    sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
+  //   umat differing_snps = umat(n_seqs, n_seqs);
+  //   for (int i=0 ; i<n_seqs; i++){
+  //     for(int j=i; j<n_seqs; j++){
+  //       differing_snps(i,j) = total_snps(i) + total_snps(j);
+  //       differing_snps(j,i) = differing_snps(i,j);
+  //     }
+  //   }
+  //   sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
 
-    if(count_n){
-      comp_snps = differing_snps - umat(binary_snps * binary_snps.t()) - comp_snps;
-    } else {
-      umat total_n = umat(sum(sparse_matrix_N, 1));
+  //   if(count_n){
+  //     comp_snps = differing_snps - umat(binary_snps * binary_snps.t()) - comp_snps;
+  //   } else {
+  //     umat total_n = umat(sum(sparse_matrix_N, 1));
 
-      uvec cons_idsN = find(consensus == 4); // Find indices
+  //     uvec cons_idsN = find(consensus == 4); // Find indices
 
-      umat matrix_n_cols = zeros<umat>(n_seqs, cons_idsN.size());
-      for (int i=0; i<cons_idsN.size(); i++){
-        sp_umat col(binary_snps.col(cons_idsN(i)));
-        for (arma::sp_umat::iterator it = col.begin(); it != col.end(); ++it) {
-         matrix_n_cols(it.row(), i) = 1;
-        }
-      }
+  //     umat matrix_n_cols = zeros<umat>(n_seqs, cons_idsN.size());
+  //     for (int i=0; i<cons_idsN.size(); i++){
+  //       sp_umat col(binary_snps.col(cons_idsN(i)));
+  //       for (arma::sp_umat::iterator it = col.begin(); it != col.end(); ++it) {
+  //        matrix_n_cols(it.row(), i) = 1;
+  //       }
+  //     }
 
-      // cout << "up to n matrix conversion.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
-      // begin_time = clock();
+  //     // cout << "up to n matrix conversion.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+  //     // begin_time = clock();
 
-      umat  cons_snps_N = matrix_n_cols * matrix_n_cols.t();
-      uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
+  //     umat  cons_snps_N = matrix_n_cols * matrix_n_cols.t();
+  //     uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
 
-      for (int i=0 ; i<n_seqs; i++){
-        for(int j=i; j<n_seqs; j++){
-          diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
-          diff_n(j,i) = diff_n(i,j);
-        }
-      }
-      // cout << "calc diff.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
-      // begin_time = clock();
+  //     for (int i=0 ; i<n_seqs; i++){
+  //       for(int j=i; j<n_seqs; j++){
+  //         diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
+  //         diff_n(j,i) = diff_n(i,j);
+  //       }
+  //     }
+  //     // cout << "calc diff.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+  //     // begin_time = clock();
 
-      comp_snps = differing_snps - umat(binary_snps * binary_snps.t()) - comp_snps - diff_n;
-    }
-  }
+  //     comp_snps = differing_snps - umat(binary_snps * binary_snps.t()) - comp_snps - diff_n;
+  //   }
+  // }
 
-  // cout << "calc remaining dist.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
-  // begin_time = clock();
+  // // cout << "calc remaining dist.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+  // // begin_time = clock();
 
-  // Output the distance matrix to stdout
-  for (int j=0; j < n_seqs; j++) {
-    printf("%s", seq_names[j].c_str());
-    for (int i=0; i < n_seqs; i++) {
-      printf("%c%d", sep, int(comp_snps(i,j)));
-    }
-    printf("\n");
-  }
+  // // Output the distance matrix to stdout
+  // for (int j=0; j < n_seqs; j++) {
+  //   printf("%s", seq_names[j].c_str());
+  //   for (int i=0; i < n_seqs; i++) {
+  //     printf("%c%d", sep, int(comp_snps(i,j)));
+  //   }
+  //   printf("\n");
+  // }
 
   return 0;
 
