@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
   // begin_time = clock();
 
   sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
-
+  sp_umat t_binary_snps = binary_snps.t();
 
   // build some matrices we'll need to deal with column where the consensus is 'N'
   umat total_n = umat(sum(sparse_matrix_N, 0));
@@ -257,7 +257,6 @@ int main(int argc, char *argv[])
   umat matrix_n_cols = zeros<umat>(n_seqs, cons_idsN.size());
 
   if(!count_n){
-    sp_umat t_binary_snps = binary_snps.t();
     for (int i=0; i<cons_idsN.size(); i++){
       sp_umat col(t_binary_snps.col(cons_idsN(i)));
       for (arma::sp_umat::iterator it = col.begin(); it != col.end(); ++it) {
@@ -269,33 +268,54 @@ int main(int argc, char *argv[])
   umat  cons_snps_N = matrix_n_cols * matrix_n_cols.t();
   uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
 
+  sp_umat t_sparse_matrix_A = sparse_matrix_A.t();
+  sp_umat t_sparse_matrix_C = sparse_matrix_C.t();
+  sp_umat t_sparse_matrix_G = sparse_matrix_G.t();
+  sp_umat t_sparse_matrix_T = sparse_matrix_T.t();
+  sp_umat t_sparse_matrix_N = sparse_matrix_N.t();
+
+  umat total_snps = umat(sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0));
+
+
+  // clock_t begin_time = clock();
 
   for (size_t i = 0; i < n_seqs; i++) {
-      umat comp_snps = umat(sparse_matrix_A.t() * sparse_matrix_A.col(i));
-      comp_snps = comp_snps + umat(sparse_matrix_C.t() * sparse_matrix_C.col(i));
-      comp_snps = comp_snps + umat(sparse_matrix_G.t() * sparse_matrix_G.col(i));
-      comp_snps = comp_snps + umat(sparse_matrix_T.t() * sparse_matrix_T.col(i));
+
+      // begin_time = clock();
+
+      umat comp_snps = umat(t_sparse_matrix_A * sparse_matrix_A.col(i));
+      comp_snps = comp_snps + umat(t_sparse_matrix_C * sparse_matrix_C.col(i));
+      comp_snps = comp_snps + umat(t_sparse_matrix_G * sparse_matrix_G.col(i));
+      comp_snps = comp_snps + umat(t_sparse_matrix_T * sparse_matrix_T.col(i));
+      
+
+      // cout << "HereA: " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+      // begin_time = clock();
 
       if(dist){
-        umat diff_n = umat(sparse_matrix_N.t() * sparse_matrix_N.col(i));
+        umat diff_n = umat(t_sparse_matrix_N * sparse_matrix_N.col(i));
         comp_snps = comp_snps + diff_n;
-
-        sp_umat total_snps = sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0);
 
         umat differing_snps = umat(n_seqs, 1);
         for(int j=0; j<n_seqs; j++){
           differing_snps(j,0) = total_snps(i) + total_snps(j);
         }
+
+        // cout << "HereB: " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+        
         if(count_n){
-          comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps;
+          comp_snps = differing_snps - umat(t_binary_snps * binary_snps.col(i)) - comp_snps;
         } else {
 
           for(int j=0; j<n_seqs; j++){
             diff_n(j,0) = total_n(i) + total_n(j) - 2*diff_n(j,0) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(j, i);
           }
-          comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps - diff_n;   
+          comp_snps = differing_snps - umat(t_binary_snps * binary_snps.col(i)) - comp_snps - diff_n;   
         }        
       }
+
+      // cout << "HereC: " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
+      // begin_time = clock();
 
     // Output the distance matrix to stdout
     printf("%s", seq_names[i].c_str());
