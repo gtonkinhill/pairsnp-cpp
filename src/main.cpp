@@ -10,7 +10,7 @@
 #include <time.h>
 #include <ctime>
 
-#define VERSION "0.0.1"
+#define VERSION "0.1.0"
 #define EXENAME "pairsnp"
 using namespace arma;
 
@@ -257,9 +257,9 @@ int main(int argc, char *argv[])
   uvec cons_idsN = find(consensus == 4); // Find indices
   umat matrix_n_cols = zeros<umat>(cons_idsN.size(), n_seqs);
 
-  cout << "total_n: " << total_n << endl;
-  cout << "cons_idsN: " << cons_idsN << endl;
-  cout << "matrix_n_cols: " << matrix_n_cols << endl;
+  // cout << "total_n: " << total_n << endl;
+  // cout << "cons_idsN: " << cons_idsN << endl;
+  // cout << "matrix_n_cols: " << matrix_n_cols << endl;
 
   if(!count_n){
     sp_umat t_binary_snps = binary_snps.t();
@@ -272,71 +272,72 @@ int main(int argc, char *argv[])
 
     cout << "matrix_n_cols: " << matrix_n_cols << endl;
 
-    umat  cons_snps_N = matrix_n_cols.t() * matrix_n_cols;
-    uvec  tot_cons_snps_N = uvec(sum(matrix_n_cols, 0));
+    umat  cons_snps_N =  matrix_n_cols * matrix_n_cols.t();
+    uvec  tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
   }
 
 
-  for (size_t i = 0; i < 1; i++) {
+  for (size_t i = 0; i < n_seqs; i++) {
       umat comp_snps = umat(sparse_matrix_A.t() * sparse_matrix_A.col(i));
       comp_snps = comp_snps + umat(sparse_matrix_C.t() * sparse_matrix_C.col(i));
       comp_snps = comp_snps + umat(sparse_matrix_G.t() * sparse_matrix_G.col(i));
       comp_snps = comp_snps + umat(sparse_matrix_T.t() * sparse_matrix_T.col(i));
 
-      cout << "comp_snps1: " << comp_snps << endl;
+      // cout << "comp_snps1: " << comp_snps << endl;
 
       if(dist){
         umat diff_n = umat(sparse_matrix_N.t() * sparse_matrix_N.col(i));
         comp_snps = comp_snps + diff_n;
 
-        cout << "comp_snps2: " << comp_snps << endl;
+        // cout << "comp_snps2: " << comp_snps << endl;
 
         sp_umat total_snps = sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0);
 
-        cout << "total_snps: " << total_snps << endl;
+        // cout << "total_snps: " << total_snps << endl;
 
         umat differing_snps = umat(n_seqs, 1);
         for(int j=0; j<n_seqs; j++){
           differing_snps(j,0) = total_snps(i) + total_snps(j);
         }
 
-        cout << "differing_snps: " << differing_snps << endl;
+        // cout << "differing_snps: " << differing_snps << endl;
 
-        cout << "binary_snps: " << umat(binary_snps.t() * binary_snps.col(i)) << endl;
+        // cout << "binary_snps: " << umat(binary_snps.t() * binary_snps.col(i)) << endl;
 
         if(count_n){
-          cout << "HERE!! " << endl;
+          // cout << "HERE!! " << endl;
           comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps;
         } else {
 
-          cout << "matrix_n_cols: " << matrix_n_cols << endl;
+          // cout << "matrix_n_cols: " << matrix_n_cols << endl;
 
           umat  cons_snps_N = matrix_n_cols.t() * matrix_n_cols.col(i);
-          uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
+          // uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
 
+          cout << "total_n: " << total_n << endl;
+          cout << "diff_n: " << diff_n << endl;
           cout << "cons_snps_N: " << cons_snps_N << endl;
-          cout << "tot_cons_snps_N: " << tot_cons_snps_N << endl;
+          // cout << "tot_cons_snps_N: " << tot_cons_snps_N << endl;
 
-          // for(int j=0; j<n_seqs; j++){
-          //   diff_n(j) = total_n(i) + total_n(j) - 2*diff_n(j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(j);
-          // }
-
-            //     for (int i=0 ; i<n_seqs; i++){
-  //       for(int j=i; j<n_seqs; j++){
-  //         diff_n(i,j) = total_n(i) + total_n(j) - 2*diff_n(i,j) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(i,j);
-  //         diff_n(j,i) = diff_n(i,j);
-  //       }
-  //     }
+          for(int j=0; j<n_seqs; j++){
+            diff_n(j,0) = total_n(i) + total_n(j) - 2*diff_n(j,0) + matrix_n_cols(i) + matrix_n_cols(j) - 2*cons_snps_N(j, i);
+          }
 
           comp_snps = differing_snps - umat(binary_snps.t() * binary_snps.col(i)) - comp_snps - diff_n;
           
         }
 
-        cout << "comp_snps3: " << comp_snps << endl;
+        // cout << "comp_snps3: " << comp_snps << endl;
         
       }
 
-
+    // // Output the distance matrix to stdout
+    printf("%s", seq_names[i].c_str());
+    for (int j=0; j < n_seqs; j++) {
+      printf("%c%d", sep, int(comp_snps(j)));
+    }
+    printf("\n");
+    
 
 
   }
