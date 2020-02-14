@@ -1,6 +1,7 @@
 AC_INIT([pairsnp], [0.0.1], [g.tonkinhill@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
+AC_OPENMP
 
 CXXFLAGS="$CXXFLAGS -std=c++1y -g -O3 -DARMA_64BIT_WORD"
 AC_PROG_CXX
@@ -16,3 +17,4 @@ AC_CONFIG_FILES([
  src/Makefile
 ])
 AC_OUTPUT
+

@@ -170,7 +170,7 @@ AWK = awk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CPPFLAGS = 
+CPPFLAGS = -I/usr/local/opt/llvm/include
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -189,13 +189,14 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS = 
+LDFLAGS = -L/usr/local/opt/llvm/lib
 LIBOBJS = 
 LIBS = 
 LTLIBOBJS = 
 MAKEINFO = ${SHELL} /Users/gt4/Documents/pairsnp-cpp/missing makeinfo
 MKDIR_P = .././install-sh -c -d
 OBJEXT = o
+OPENMP_CFLAGS = 
 PACKAGE = pairsnp
 PACKAGE_BUGREPORT = g.tonkinhill@gmail.com
 PACKAGE_NAME = pairsnp

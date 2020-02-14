@@ -23,7 +23,7 @@ void show_help(int retcode)
   fprintf(out, "  -h\tShow this help\n");
   fprintf(out, "  -v\tPrint version and exit\n");
   fprintf(out, "  -s\tOutput in sparse matrix form (i,j,distance).\n");
-  fprintf(out, "  -d\tdistance threshold for sparse output. Only distances <= d will be returned.\n");
+  fprintf(out, "  -d\tDistance threshold for sparse output. Only distances <= d will be returned.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
   // fprintf(out, "  -t\tNumber of threads to use\n");
@@ -243,6 +243,7 @@ int main(int argc, char *argv[])
 
   umat total_snps = umat(sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0));
 
+  #pragma omp parallel for ordered
   for (size_t i = 0; i < n_seqs; i++) {
 
       umat comp_snps = umat(t_sparse_matrix_A * sparse_matrix_A.col(i));
@@ -271,6 +272,7 @@ int main(int argc, char *argv[])
       }        
 
     // Output the distance matrix to stdout
+    #pragma omp ordered
     if (sparse){
       for (int j=0; j < n_seqs; j++) {
         if (int(comp_snps(j)) <= dist){
