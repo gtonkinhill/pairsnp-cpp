@@ -23,8 +23,8 @@ void show_help(int retcode)
   fprintf(out, "  -h\tShow this help\n");
   fprintf(out, "  -v\tPrint version and exit\n");
   fprintf(out, "  -s\tOutput in sparse matrix form (i,j,distance).\n");
+  fprintf(out, "  -d\tdistance threshold for sparse output. Only distances <= d will be returned.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
-  fprintf(out, "  -t\tNumber of threads to use\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
   // fprintf(out, "  -t\tNumber of threads to use\n");
   fprintf(out, "  -b\tBlank top left corner cell instead of '%s %s'\n", EXENAME, VERSION);
@@ -36,14 +36,15 @@ int main(int argc, char *argv[])
   // clock_t begin_time = clock();
 
   // parse command line parameters
-  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0, count_n=0;
-  while ((opt = getopt(argc, argv, "hqsncv")) != -1) {
+  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0, count_n=0, dist;
+  while ((opt = getopt(argc, argv, "hqsncvd:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet=1; break;
       case 'c': csv=1; break;
       case 's': sparse=1; break;
       case 'n': count_n=1; break;
+      case 'd': dist=atoi(optarg); break;
       case 'v': printf("%s %s\n", EXENAME, VERSION); exit(EXIT_SUCCESS);
       default : show_help(EXIT_FAILURE);
     }
@@ -272,7 +273,9 @@ int main(int argc, char *argv[])
     // Output the distance matrix to stdout
     if (sparse){
       for (int j=0; j < n_seqs; j++) {
-        printf("%d%c%d%c%d\n", i, sep, j, sep, int(comp_snps(j)));
+        if (int(comp_snps(j)) <= dist){
+          printf("%d%c%d%c%d\n", i, sep, j, sep, int(comp_snps(j)));
+        }
       }
     } else {
       printf("%s", seq_names[i].c_str());
