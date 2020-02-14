@@ -18,6 +18,9 @@ cmp temp.txt test_ambig.txt
 $EXE -n ./ambig.aln > temp.txt
 cmp temp.txt test_ambig_with_n.txt
 
+$EXE -n ./ambig_cons.aln > temp.txt
+cmp temp.txt test_ambig_cons.txt
+
 echo "check bad"
 $EXE ./bad.aln > temp.txt || true
 cmp temp.txt test_bad.txt
