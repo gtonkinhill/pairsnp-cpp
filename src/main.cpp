@@ -20,7 +20,7 @@ using namespace arma;
 void show_help(int retcode)
 {
   FILE* out = (retcode == EXIT_SUCCESS ? stdout : stderr);
-  fprintf(out, "SYNOPSIS\n  Pairwise SNP similarity and distance matrices using fast matrix algerbra libraries\n");
+  fprintf(out, "SYNOPSIS\n  Pairwise SNP distance matrices using fast matrix algerbra libraries\n");
   fprintf(out, "USAGE\n  %s [options] alignment.fasta[.gz] > matrix.csv\n", EXENAME);
   fprintf(out, "OPTIONS\n");
   fprintf(out, "  -h\tShow this help\n");
@@ -29,7 +29,7 @@ void show_help(int retcode)
   fprintf(out, "  -d\tDistance threshold for sparse output. Only distances <= d will be returned.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
-  fprintf(out, "  -t\tNumber of threads to use\n");
+  fprintf(out, "  -t\tNumber of threads to use (default=1)\n");
   fprintf(out, "  -b\tBlank top left corner cell instead of '%s %s'\n", EXENAME, VERSION);
   exit(retcode);
 }
