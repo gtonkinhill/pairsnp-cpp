@@ -3,7 +3,8 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
 AC_OPENMP
 
-CXXFLAGS="$CXXFLAGS -std=c++1y -g -O3 -DARMA_64BIT_WORD"
+
+CXXFLAGS="$CXXFLAGS -std=c++1y -g -O3 -DARMA_64BIT_WORD -fopenmp"
 AC_PROG_CXX
 
 # Armadillo

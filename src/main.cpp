@@ -6,6 +6,11 @@
 #include <armadillo>
 #include "kseq.h"
 
+#ifdef _OPENMP
+  #include <omp.h>
+  void omp_set_num_threads(int num_threads);
+  int omp_get_num_threads();
+#endif
 
 #include <time.h>
 #include <ctime>
@@ -243,7 +248,16 @@ int main(int argc, char *argv[])
 
   umat total_snps = umat(sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0));
 
-  #pragma omp parallel for ordered
+
+  #pragma omp parallel for ordered shared(t_sparse_matrix_A, sparse_matrix_A \
+    , t_sparse_matrix_C, sparse_matrix_C \
+    , t_sparse_matrix_G, sparse_matrix_G \
+    , t_sparse_matrix_T, sparse_matrix_T \
+    , t_sparse_matrix_N, sparse_matrix_N \
+    , t_binary_snps, binary_snps \
+    , matrix_n_cols, tot_cons_snps_N \
+    , seq_names, dist, sparse, sep, total_n \
+    , count_n, total_snps, n_seqs) default(none) schedule(static,1)
   for (size_t i = 0; i < n_seqs; i++) {
 
       umat comp_snps = umat(t_sparse_matrix_A * sparse_matrix_A.col(i));
@@ -272,7 +286,7 @@ int main(int argc, char *argv[])
       }        
 
     // Output the distance matrix to stdout
-    #pragma omp ordered
+    #pragma omp ordered //#pragma omp critical
     if (sparse){
       for (int j=0; j < n_seqs; j++) {
         if (int(comp_snps(j)) <= dist){
