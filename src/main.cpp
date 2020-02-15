@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   // clock_t begin_time = clock();
 
   // parse command line parameters
-  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0, count_n=0, dist;
+  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0, count_n=0, dist=-1;
   while ((opt = getopt(argc, argv, "hqsncvd:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
@@ -248,7 +248,6 @@ int main(int argc, char *argv[])
 
   umat total_snps = umat(sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0));
 
-
   #pragma omp parallel for ordered shared(t_sparse_matrix_A, sparse_matrix_A \
     , t_sparse_matrix_C, sparse_matrix_C \
     , t_sparse_matrix_G, sparse_matrix_G \
@@ -288,8 +287,8 @@ int main(int argc, char *argv[])
     // Output the distance matrix to stdout
     #pragma omp ordered //#pragma omp critical
     if (sparse){
-      for (int j=0; j < n_seqs; j++) {
-        if (int(comp_snps(j)) <= dist){
+      for (int j=(i+1); j < n_seqs; j++) {
+        if ((dist==-1) || (int(comp_snps(j)) <= dist)){
           printf("%d%c%d%c%d\n", i, sep, j, sep, int(comp_snps(j)));
         }
       }
