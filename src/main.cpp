@@ -8,8 +8,6 @@
 
 #ifdef _OPENMP
   #include <omp.h>
-  void omp_set_num_threads(int num_threads);
-  int omp_get_num_threads();
 #endif
 
 #include <time.h>
@@ -31,18 +29,18 @@ void show_help(int retcode)
   fprintf(out, "  -d\tDistance threshold for sparse output. Only distances <= d will be returned.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
-  // fprintf(out, "  -t\tNumber of threads to use\n");
+  fprintf(out, "  -t\tNumber of threads to use\n");
   fprintf(out, "  -b\tBlank top left corner cell instead of '%s %s'\n", EXENAME, VERSION);
   exit(retcode);
 }
 
 int main(int argc, char *argv[])
 {
-  // clock_t begin_time = clock();
 
   // parse command line parameters
-  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0, count_n=0, dist=-1;
-  while ((opt = getopt(argc, argv, "hqsncvd:")) != -1) {
+  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0;
+  int nthreads=1, count_n=0, dist=-1;
+  while ((opt = getopt(argc, argv, "hqsncvd:t:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet=1; break;
@@ -50,6 +48,7 @@ int main(int argc, char *argv[])
       case 's': sparse=1; break;
       case 'n': count_n=1; break;
       case 'd': dist=atoi(optarg); break;
+      case 't': nthreads=atoi(optarg); break;
       case 'v': printf("%s %s\n", EXENAME, VERSION); exit(EXIT_SUCCESS);
       default : show_help(EXIT_FAILURE);
     }
@@ -73,10 +72,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERROR: Could not open filename '%s'\n", fasta);
     exit(EXIT_FAILURE);
   }
-
-
-  // cout << "warmup. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
-  // begin_time = clock();
 
   //Initially run through fasta to get consensus sequence and dimensions of matrix
   int n = 0;
@@ -107,10 +102,6 @@ int main(int argc, char *argv[])
     n++;
   } while((l = ks.read(seq)) >= 0);
   close(fp);
-
-
-  // cout << "initial read.. " << float( clock () - begin_time ) /  CLOCKS_PER_SEC << endl;
-  // begin_time = clock();
 
   // Now calculate the consensus sequence
   uvec consensus(seq_length);
@@ -182,6 +173,7 @@ int main(int argc, char *argv[])
 
     seq_names.push_back(seq.name);
 
+    // identify snp locations
     for(int j=0; j<seq_length; j++){
       temp_char = seq.seq[j];
       if((((temp_char=='A') || (temp_char=='a')) && (consensus(j)!=0))){
@@ -214,6 +206,7 @@ int main(int argc, char *argv[])
     n += 1;
   }
 
+  // create sparse matrices
   sp_umat sparse_matrix_A(locationsA, ones<uvec>(nA_snps), seq_length, n_seqs);
   sp_umat sparse_matrix_C(locationsC, ones<uvec>(nC_snps), seq_length, n_seqs);
   sp_umat sparse_matrix_G(locationsG, ones<uvec>(nG_snps), seq_length, n_seqs);
@@ -240,6 +233,7 @@ int main(int argc, char *argv[])
   uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
   matrix_n_cols = matrix_n_cols.t();
 
+  // take the transpose once to improve speed in row access
   sp_umat t_sparse_matrix_A = sparse_matrix_A.t();
   sp_umat t_sparse_matrix_C = sparse_matrix_C.t();
   sp_umat t_sparse_matrix_G = sparse_matrix_G.t();
@@ -256,7 +250,7 @@ int main(int argc, char *argv[])
     , t_binary_snps, binary_snps \
     , matrix_n_cols, tot_cons_snps_N \
     , seq_names, dist, sparse, sep, total_n \
-    , count_n, total_snps, n_seqs) default(none) schedule(static,1)
+    , count_n, total_snps, n_seqs) default(none) schedule(static,1) num_threads(nthreads)
   for (size_t i = 0; i < n_seqs; i++) {
 
       umat comp_snps = umat(t_sparse_matrix_A * sparse_matrix_A.col(i));
