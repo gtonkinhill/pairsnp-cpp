@@ -206,6 +206,13 @@ int main(int argc, char *argv[])
     n += 1;
   }
 
+  //If sparse output print sequence names in the header
+  printf("#\t");
+  for (int j=0; j < n_seqs; j++) {
+    printf("%s\t", seq_names[j].c_str());
+  }
+  printf("\n");
+
   // create sparse matrices
   sp_umat sparse_matrix_A(locationsA, ones<uvec>(nA_snps), seq_length, n_seqs);
   sp_umat sparse_matrix_C(locationsC, ones<uvec>(nC_snps), seq_length, n_seqs);
