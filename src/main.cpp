@@ -27,6 +27,7 @@ void show_help(int retcode)
   fprintf(out, "  -v\tPrint version and exit\n");
   fprintf(out, "  -s\tOutput in sparse matrix form (i,j,distance).\n");
   fprintf(out, "  -d\tDistance threshold for sparse output. Only distances <= d will be returned.\n");
+  fprintf(out, "  -k\tWill on return the k nearest neighbours for each sample in sparse output.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
   fprintf(out, "  -t\tNumber of threads to use (default=1)\n");
@@ -34,13 +35,14 @@ void show_help(int retcode)
   exit(retcode);
 }
 
+
 int main(int argc, char *argv[])
 {
 
   // parse command line parameters
   int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0;
-  int nthreads=1, count_n=0, dist=-1;
-  while ((opt = getopt(argc, argv, "hqsncvd:t:")) != -1) {
+  int nthreads=1, count_n=0, dist=-1, knn=-1;
+  while ((opt = getopt(argc, argv, "hqsncvd:t:k:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet=1; break;
@@ -48,6 +50,7 @@ int main(int argc, char *argv[])
       case 's': sparse=1; break;
       case 'n': count_n=1; break;
       case 'd': dist=atoi(optarg); break;
+      case 'k': knn=atoi(optarg); break;
       case 't': nthreads=atoi(optarg); break;
       case 'v': printf("%s %s\n", EXENAME, VERSION); exit(EXIT_SUCCESS);
       default : show_help(EXIT_FAILURE);
@@ -207,11 +210,13 @@ int main(int argc, char *argv[])
   }
 
   //If sparse output print sequence names in the header
-  printf("#\t");
-  for (int j=0; j < n_seqs; j++) {
-    printf("%s\t", seq_names[j].c_str());
+  if (sparse){
+    printf("#\t");
+    for (int j=0; j < n_seqs; j++) {
+      printf("%s\t", seq_names[j].c_str());
+    }
+    printf("\n");
   }
-  printf("\n");
 
   // create sparse matrices
   sp_umat sparse_matrix_A(locationsA, ones<uvec>(nA_snps), seq_length, n_seqs);
@@ -256,7 +261,7 @@ int main(int argc, char *argv[])
     , t_sparse_matrix_N, sparse_matrix_N \
     , t_binary_snps, binary_snps \
     , matrix_n_cols, tot_cons_snps_N \
-    , seq_names, dist, sparse, sep, total_n \
+    , seq_names, dist, sparse, sep, total_n, knn \
     , count_n, total_snps, n_seqs) default(none) schedule(static,1) num_threads(nthreads)
   for (size_t i = 0; i < n_seqs; i++) {
 
@@ -285,10 +290,20 @@ int main(int argc, char *argv[])
         comp_snps = differing_snps - umat(t_binary_snps * binary_snps.col(i)) - comp_snps - diff_n;   
       }        
 
+    // if using knn find the distance needed
+    int start;
+    if (knn>=0){
+      umat s_comp = sort(comp_snps, "ascend");
+      dist = s_comp(knn);
+      start=0;
+    } else {
+      start = i+1;
+    }
+
     // Output the distance matrix to stdout
     #pragma omp ordered //#pragma omp critical
     if (sparse){
-      for (int j=(i+1); j < n_seqs; j++) {
+      for (int j=start; j < n_seqs; j++) {
         if ((dist==-1) || (int(comp_snps(j)) <= dist)){
           printf("%d%c%d%c%d\n", i, sep, j, sep, int(comp_snps(j)));
         }
