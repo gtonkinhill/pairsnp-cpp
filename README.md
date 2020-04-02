@@ -7,7 +7,7 @@
 The c++ version can be installed manually or with conda as
 
 ```
-conda install -c gtonkinhill pairsnp
+conda install -c bioconda pairsnp
 ```
 
 
@@ -37,14 +37,17 @@ additional options include
 
 ```
 SYNOPSIS
-  Pairwise SNP similarity and distance matrices using fast matrix algerbra libraries
+  Pairwise SNP distance matrices using fast matrix algerbra libraries
 USAGE
   pairsnp [options] alignment.fasta[.gz] > matrix.csv
 OPTIONS
   -h	Show this help
   -v	Print version and exit
-  -s	Find the similarity matrix
+  -s	Output in sparse matrix form (i,j,distance).
+  -d	Distance threshold for sparse output. Only distances <= d will be returned.
+  -k	Will on return the k nearest neighbours for each sample in sparse output.
   -c	Output CSV instead of TSV
   -n	Count comparisons with Ns (off by default)
-  -b	Blank top left corner cell instead of 'pairsnp 0.0.1'
+  -t	Number of threads to use (default=1)
+  -b	Blank top left corner cell instead of 'pairsnp 0.1.0'
 ```
