@@ -13,7 +13,7 @@
 #include <time.h>
 #include <ctime>
 
-#define VERSION "0.1.0"
+#define VERSION "0.2.0"
 #define EXENAME "pairsnp"
 using namespace arma;
 
@@ -121,6 +121,11 @@ int main(int argc, char *argv[])
       }
     }
     max_allele = -1;
+  }
+
+  if((knn!=-1) && (knn>=n_seqs)){
+      fprintf(stderr, "kNN > number of samples. Running in dense mode!\n" );
+      knn = -1;
   }
 
   // Find the total number of SNPs we add a buffer of 
@@ -294,7 +299,7 @@ int main(int argc, char *argv[])
     int start;
     if (knn>=0){
       umat s_comp = sort(comp_snps, "ascend");
-      dist = s_comp(knn);
+      dist = s_comp(knn+1);
       start=0;
     } else {
       start = i+1;
