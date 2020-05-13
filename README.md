@@ -14,7 +14,7 @@ conda install -c bioconda pairsnp
 The c++ code relies on a recent version of Armadillo (currently tested on v8.6) and can be built by running
 
 ```
-cd ./pairsnp/cpp/
+cd ./pairsnp-cpp/
 ./configure
 make
 make install
