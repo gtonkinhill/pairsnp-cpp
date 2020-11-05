@@ -5,7 +5,7 @@ language: cpp
 
 before_install:
   - sudo apt-get install -y --allow-unauthenticated libopenblas-dev liblapack-dev libboost-all-dev 
-  - wget http://sourceforge.net/projects/arma/files/armadillo-9.100.5.tar.xz
+  - wget http://sourceforge.net/projects/arma/files/armadillo-10.1.1.tar.xz
   - tar xf armadillo*
   - cd armadillo*
   - cmake . && make && sudo make install && cd ..
