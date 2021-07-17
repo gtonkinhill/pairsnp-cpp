@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fcntl.h>
 #include <vector>
+#include <iterator>
+#include <string>
 #include "kseq.h"
 
 #ifdef _OPENMP
