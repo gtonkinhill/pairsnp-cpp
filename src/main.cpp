@@ -3,7 +3,8 @@
 #include <iostream>
 #include <fcntl.h>
 #include <vector>
-#include <armadillo>
+#include <iterator>
+#include <string>
 #include "kseq.h"
 
 #ifdef _OPENMP
@@ -13,9 +14,13 @@
 #include <time.h>
 #include <ctime>
 
-#define VERSION "0.2.0"
+#include "roaring.hh"
+#include "roaring.c"
+using namespace roaring;
+
+
+#define VERSION "0.3.0"
 #define EXENAME "pairsnp"
-using namespace arma;
 
 void show_help(int retcode)
 {
@@ -31,7 +36,6 @@ void show_help(int retcode)
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
   fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
   fprintf(out, "  -t\tNumber of threads to use (default=1)\n");
-  fprintf(out, "  -b\tBlank top left corner cell instead of '%s %s'\n", EXENAME, VERSION);
   exit(retcode);
 }
 
@@ -40,15 +44,14 @@ int main(int argc, char *argv[])
 {
 
   // parse command line parameters
-  int opt, quiet=0, csv=0, corner=1, allchars=0, keepcase=0, sparse=0;
-  int nthreads=1, count_n=0, dist=-1, knn=-1;
+  int opt, quiet=0, csv=0, sparse=0, dist=-1, knn=-1;
+  size_t nthreads=1;
   while ((opt = getopt(argc, argv, "hqsncvd:t:k:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet=1; break;
       case 'c': csv=1; break;
       case 's': sparse=1; break;
-      case 'n': count_n=1; break;
       case 'd': dist=atoi(optarg); break;
       case 'k': knn=atoi(optarg); break;
       case 't': nthreads=atoi(optarg); break;
@@ -76,230 +79,149 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  //Initially run through fasta to get consensus sequence and dimensions of matrix
-  int n = 0;
-  int l = 0;
+  //Initially run through fasta to get SNPS not matching reference
+  size_t n_seqs = 0;
+  int l=0;
   kseq seq;
   FunctorRead r;
   kstream<int, FunctorRead> ks(fp, r);
 
   // Use first sequence to set size of arrays
   l = ks.read(seq);
-  int seq_length = seq.seq.length();
-  std::vector<std::vector<int>> allele_counts(5, std::vector<int>(seq_length));
+  size_t seq_length = seq.seq.length();
+
+  // initialise roaring bitmaps
+  std::vector<std::string> seq_names;
+  std::vector<Roaring> A_snps;
+  std::vector<Roaring> C_snps;
+  std::vector<Roaring> G_snps;
+  std::vector<Roaring> T_snps;
 
   do {
-    for(int j=0; j<seq_length; j++){
-      if((seq.seq[j]=='a') || (seq.seq[j]=='A')){
-        allele_counts[0][j] += 1;
-      } else if((seq.seq[j]=='c') || (seq.seq[j]=='C')){
-        allele_counts[1][j] += 1;
-      } else if((seq.seq[j]=='g') || (seq.seq[j]=='G')){
-        allele_counts[2][j] += 1;
-      } else if((seq.seq[j]=='t') || (seq.seq[j]=='T')){
-        allele_counts[3][j] += 1;
-      } else {
-        allele_counts[4][j] += 1;
+    seq_names.push_back(seq.name);
+    Roaring As;
+    Roaring Cs;
+    Roaring Gs;
+    Roaring Ts;
+
+    for(size_t j=0; j<seq_length; j++){
+
+      switch(std::toupper(seq.seq[j])){
+        case 'A': As.add(j); break;
+        case 'C': Cs.add(j); break;
+        case 'G': Gs.add(j); break;
+        case 'T': Ts.add(j); break;
+
+        // M = A or C
+        case 'M': As.add(j); 
+          Cs.add(j);
+          break;
+
+        // R = A or G
+        case 'R': As.add(j); 
+          Gs.add(j);
+          break;
+
+        // W = A or T
+        case 'W': As.add(j); 
+          Ts.add(j);
+          break;
+
+        // S = C or G
+        case 'S': Cs.add(j); 
+          Gs.add(j);
+          break;
+
+        // Y = C or T
+        case 'Y': Cs.add(j); 
+          Ts.add(j);
+          break;
+
+        // K = G or T
+        case 'K': Gs.add(j); 
+          Ts.add(j);
+          break;
+
+        // V = A,C or G
+        case 'V': As.add(j); 
+          Cs.add(j); 
+          Gs.add(j);
+          break;
+
+        // H = A,C or T
+        case 'H': As.add(j); 
+          Cs.add(j); 
+          Ts.add(j);
+          break;
+        
+        // D = A,G or T
+        case 'D': As.add(j);
+          Gs.add(j); 
+          Ts.add(j);
+          break;
+
+        // B = C,G or T
+        case 'B': Cs.add(j);
+          Gs.add(j); 
+          Ts.add(j);
+          break;
+
+        // N = A,C,G or T
+        default:  
+          As.add(j);
+          Cs.add(j);
+          Gs.add(j); 
+          Ts.add(j);
+          break;
+
       }
     }
-    n++;
+    As.runOptimize();
+    A_snps.push_back(As);
+    Cs.runOptimize();
+    C_snps.push_back(Cs);
+    Gs.runOptimize();
+    G_snps.push_back(Gs);
+    Ts.runOptimize();
+    T_snps.push_back(Ts);
+
+    n_seqs++;
   } while((l = ks.read(seq)) >= 0);
   close(fp);
 
-  // Now calculate the consensus sequence
-  uvec consensus(seq_length);
-  int n_seqs = n;
-  std::vector<std::string> seq_names;
-
-  int max_allele = -1;
-
-  for(int j=0; j<seq_length; j++){
-    for(int i=0; i<5; i++){
-      if(allele_counts[i][j]>max_allele){
-        max_allele = allele_counts[i][j];
-        consensus(j) = i;
-      }
-    }
-    max_allele = -1;
-  }
-
-  if((knn!=-1) && (knn>=n_seqs)){
+  if((knn!=-1) && (knn>=int(n_seqs))){
       fprintf(stderr, "kNN > number of samples. Running in dense mode!\n" );
       knn = -1;
   }
 
-  // Find the total number of SNPs we add a buffer of 
-  // 'seq_length' to deal with the skipped first line
-  int n_total_snps = seq_length*n_seqs;
-  int total_A_snps = 0;
-  int total_C_snps = 0;
-  int total_G_snps = 0;
-  int total_T_snps = 0;
-  int total_N_snps = 0;
-  for(int j=0; j<seq_length; j++){
-    n_total_snps =  n_total_snps - allele_counts[consensus(j)][j];
-    if ((consensus(j)!=0)) total_A_snps += allele_counts[0][j];
-    if ((consensus(j)!=1)) total_C_snps += allele_counts[1][j];
-    if ((consensus(j)!=2)) total_G_snps += allele_counts[2][j];
-    if ((consensus(j)!=3)) total_T_snps += allele_counts[3][j];
-    if ((consensus(j)!=4)) total_N_snps += allele_counts[4][j];
-  }
-
-
-  // create matrices to store SNP locations prior to generating
-  umat locationsA(2, total_A_snps, fill::zeros);
-  umat locationsC(2, total_C_snps, fill::zeros);
-  umat locationsG(2, total_G_snps, fill::zeros);
-  umat locationsT(2, total_T_snps, fill::zeros);
-  umat locationsN(2, total_N_snps, fill::zeros);
-  
-  // open a new stream to the fasta file TODO: I think there's a cleaner way of doing this.
-  int fp2 = open(fasta, O_RDONLY);
-  kstream<int, FunctorRead> ks2(fp2, r);
-  char temp_char;
-  int n_snps = 0;
-  int nA_snps = 0;
-  int nC_snps = 0;
-  int nG_snps = 0;
-  int nT_snps = 0;
-  int nN_snps = 0;
-  n=0;
-  std::string nt ("AaCcGgTt");
-
-  while((l = ks2.read(seq)) >= 0) {
-    // Record sequence names
-    // seq.name.replace(">","")
-    auto it = std::find(seq.name.begin(), seq.name.end(), '>');
-    if (it != seq.name.end()){
-      seq.name.erase(it);
-    }
-
-    if(seq_length!=seq.seq.length()){
-      std::cout << "Error: sequences are not all of the same length!" << std::endl;
-      return 1;
-    }
-
-    seq_names.push_back(seq.name);
-
-    // identify snp locations
-    for(int j=0; j<seq_length; j++){
-      temp_char = seq.seq[j];
-      if((((temp_char=='A') || (temp_char=='a')) && (consensus(j)!=0))){
-        locationsA(1, nA_snps) = n;
-        locationsA(0, nA_snps) = j; 
-        nA_snps += 1;
-        n_snps += 1;
-      } else if((((temp_char=='C') || (temp_char=='c')) && (consensus(j)!=1))){
-        locationsC(1, nC_snps) = n;
-        locationsC(0, nC_snps) = j; 
-        nC_snps += 1;
-        n_snps += 1;
-      } else if((((temp_char=='G') || (temp_char=='g')) && (consensus(j)!=2))){
-        locationsG(1, nG_snps) = n;
-        locationsG(0, nG_snps) = j; 
-        nG_snps += 1;
-        n_snps += 1;
-      } else if((((temp_char=='T') || (temp_char=='t')) && (consensus(j)!=3))){
-        locationsT(1, nT_snps) = n;
-        locationsT(0, nT_snps) = j; 
-        nT_snps += 1;
-        n_snps += 1;
-      } else if((nt.find(temp_char) == std::string::npos && (consensus(j)!=4))){
-        locationsN(1, nN_snps) = n;
-        locationsN(0, nN_snps) = j; 
-        nN_snps += 1;
-        n_snps += 1;
-      }
-    }
-    n += 1;
-  }
-
-  //If sparse output print sequence names in the header
-  if (sparse){
-    printf("#\t");
-    for (int j=0; j < n_seqs; j++) {
-      printf("%s\t", seq_names[j].c_str());
-    }
-    printf("\n");
-  }
-
-  // create sparse matrices
-  sp_umat sparse_matrix_A(locationsA, ones<uvec>(nA_snps), seq_length, n_seqs);
-  sp_umat sparse_matrix_C(locationsC, ones<uvec>(nC_snps), seq_length, n_seqs);
-  sp_umat sparse_matrix_G(locationsG, ones<uvec>(nG_snps), seq_length, n_seqs);
-  sp_umat sparse_matrix_T(locationsT, ones<uvec>(nT_snps), seq_length, n_seqs);
-  sp_umat sparse_matrix_N(locationsN, ones<uvec>(nN_snps), seq_length, n_seqs);
-
-  sp_umat binary_snps = spones(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N);
-  sp_umat t_binary_snps = binary_snps.t();
-
-  // // build some matrices we'll need to deal with column where the consensus is 'N'
-  umat total_n = umat(sum(sparse_matrix_N, 0));
-  uvec cons_idsN = find(consensus == 4); // Find indices
-  umat matrix_n_cols = zeros<umat>(n_seqs, cons_idsN.size());
-
-  if(!count_n){
-    for (int i=0; i<cons_idsN.size(); i++){
-      sp_umat col(t_binary_snps.col(cons_idsN(i)));
-      for (arma::sp_umat::iterator it = col.begin(); it != col.end(); ++it) {
-        matrix_n_cols(it.row(), i) = 1;
-      }
-    }
-  }
-
-  uvec tot_cons_snps_N = uvec(sum(matrix_n_cols, 1));
-  matrix_n_cols = matrix_n_cols.t();
-
-  // take the transpose once to improve speed in row access
-  sp_umat t_sparse_matrix_A = sparse_matrix_A.t();
-  sp_umat t_sparse_matrix_C = sparse_matrix_C.t();
-  sp_umat t_sparse_matrix_G = sparse_matrix_G.t();
-  sp_umat t_sparse_matrix_T = sparse_matrix_T.t();
-  sp_umat t_sparse_matrix_N = sparse_matrix_N.t();
-
-  umat total_snps = umat(sum(sparse_matrix_A + sparse_matrix_C + sparse_matrix_G + sparse_matrix_T + sparse_matrix_N, 0));
-
-  #pragma omp parallel for ordered shared(t_sparse_matrix_A, sparse_matrix_A \
-    , t_sparse_matrix_C, sparse_matrix_C \
-    , t_sparse_matrix_G, sparse_matrix_G \
-    , t_sparse_matrix_T, sparse_matrix_T \
-    , t_sparse_matrix_N, sparse_matrix_N \
-    , t_binary_snps, binary_snps \
-    , matrix_n_cols, tot_cons_snps_N \
-    , seq_names, dist, sparse, sep, total_n, knn \
-    , count_n, total_snps, n_seqs) default(none) schedule(static,1) num_threads(nthreads)
+  #pragma omp parallel for ordered shared(A_snps, C_snps \
+    , G_snps, T_snps, seq_length \
+    , n_seqs, seq_names, dist, sep, sparse \
+    , knn) default(none) schedule(static,1) num_threads(nthreads)
   for (size_t i = 0; i < n_seqs; i++) {
 
-      umat comp_snps = umat(t_sparse_matrix_A * sparse_matrix_A.col(i));
-      comp_snps = comp_snps + umat(t_sparse_matrix_C * sparse_matrix_C.col(i));
-      comp_snps = comp_snps + umat(t_sparse_matrix_G * sparse_matrix_G.col(i));
-      comp_snps = comp_snps + umat(t_sparse_matrix_T * sparse_matrix_T.col(i));
+    std::vector<int> comp_snps(n_seqs);
+    
+    for(size_t j=0; j<n_seqs; j++){
 
-      umat diff_n = umat(t_sparse_matrix_N * sparse_matrix_N.col(i));
-      comp_snps = comp_snps + diff_n;
+      Roaring res = A_snps[i] & A_snps[j];
+      Roaring intersect = C_snps[i] & C_snps[j];
+      res = res | intersect;
+      intersect = G_snps[i] & G_snps[j];
+      res = res | intersect;
+      intersect = T_snps[i] & T_snps[j];
+      res = res | intersect;
 
-      umat differing_snps = umat(n_seqs, 1);
-      for(int j=0; j<n_seqs; j++){
-        differing_snps(j,0) = total_snps(i) + total_snps(j);
-      }
-      
-      if(count_n){
-        comp_snps = differing_snps - umat(t_binary_snps * binary_snps.col(i)) - comp_snps;
-      } else {
+      comp_snps[j] = seq_length - res.cardinality();
 
-        umat  cons_snps_N = matrix_n_cols.col(i).t() * matrix_n_cols;
-        
-        for(int j=0; j<n_seqs; j++){
-          diff_n(j,0) = total_n(i) + total_n(j) - 2*diff_n(j,0) + tot_cons_snps_N(i) + tot_cons_snps_N(j) - 2*cons_snps_N(j);
-        }
-        comp_snps = differing_snps - umat(t_binary_snps * binary_snps.col(i)) - comp_snps - diff_n;   
-      }        
+    }
 
     // if using knn find the distance needed
     int start;
     if (knn>=0){
-      umat s_comp = sort(comp_snps, "ascend");
-      dist = s_comp(knn+1);
+      std::vector<int> s_comp = comp_snps;
+      std::sort(s_comp.begin(), s_comp.end());
+      dist = s_comp[knn+1];
       start=0;
     } else {
       start = i+1;
@@ -308,15 +230,15 @@ int main(int argc, char *argv[])
     // Output the distance matrix to stdout
     #pragma omp ordered //#pragma omp critical
     if (sparse){
-      for (int j=start; j < n_seqs; j++) {
-        if ((dist==-1) || (int(comp_snps(j)) <= dist)){
-          printf("%d%c%d%c%d\n", i, sep, j, sep, int(comp_snps(j)));
+      for (size_t j=start; j < n_seqs; j++) {
+        if ((dist==-1) || (comp_snps[j] <= dist)){
+          printf("%d%c%d%c%d\n", int(i), sep, int(j), sep, comp_snps[j]);
         }
       }
     } else {
       printf("%s", seq_names[i].c_str());
-      for (int j=0; j < n_seqs; j++) {
-        printf("%c%d", sep, int(comp_snps(j)));
+      for (size_t j=0; j < n_seqs; j++) {
+        printf("%c%d", sep, comp_snps[j]);
       }
       printf("\n");
     }
@@ -325,3 +247,5 @@ int main(int argc, char *argv[])
   return 0;
 
   }
+
+
