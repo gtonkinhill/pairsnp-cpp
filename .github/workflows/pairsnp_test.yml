@@ -15,17 +15,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential
+          make
+          
+      - name: Install
+        run: sudo make install
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install build-essential
-        make
-        
-    - name: Install
-      run: sudo make install
-
-    - name: Validation Tests
-      run: make check
+      - name: Validation Tests
+        run: make check
 
 
