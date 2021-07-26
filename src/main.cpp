@@ -210,6 +210,15 @@ int main(int argc, char *argv[])
       knn = -1;
   }
 
+  //If sparse output print sequence names in the header
+  if (index){
+    std::cout << '#' << sep;
+    for (size_t j=0; j < n_seqs; j++) {
+      std::cout << seq_names[j] << sep;
+    }
+    std::cout << std::endl;
+  }
+
   #pragma omp parallel for ordered shared(A_snps, C_snps \
     , G_snps, T_snps, seq_length \
     , n_seqs, seq_names, dist, sep, sparse \
