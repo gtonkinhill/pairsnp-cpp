@@ -37,7 +37,7 @@ additional options include
 
 ```
 SYNOPSIS
-  Pairwise SNP distance matrices using fast matrix algerbra libraries
+  Fast pairwise SNP distance matrices
 USAGE
   pairsnp [options] alignment.fasta[.gz] > matrix.csv
 OPTIONS
@@ -47,6 +47,6 @@ OPTIONS
   -d	Distance threshold for sparse output. Only distances <= d will be returned.
   -k	Will on return the k nearest neighbours for each sample in sparse output.
   -c	Output CSV instead of TSV
-  -n	Count comparisons with Ns (off by default)
+  -i	Output sequence index inplace of header (useful for downstream processing)
   -t	Number of threads to use (default=1)
 ```

@@ -28,7 +28,7 @@ KSEQ_INIT(gzFile, gzread)
 void show_help(int retcode)
 {
   FILE* out = (retcode == EXIT_SUCCESS ? stdout : stderr);
-  fprintf(out, "SYNOPSIS\n  Pairwise SNP distance matrices using fast matrix algerbra libraries\n");
+  fprintf(out, "SYNOPSIS\n  Fast pairwise SNP distance matrices\n");
   fprintf(out, "USAGE\n  %s [options] alignment.fasta[.gz] > matrix.csv\n", EXENAME);
   fprintf(out, "OPTIONS\n");
   fprintf(out, "  -h\tShow this help\n");
