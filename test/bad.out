@@ -1,1 +1,1 @@
-Error: sequences are not all of the same length!
+Error: incorrect FASTA format, variable sequence lengths! seq3
