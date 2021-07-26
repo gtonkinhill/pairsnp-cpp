@@ -1,4 +1,3 @@
-./cpp/update_timestamp.sh
+*.DS_Store
 *.o
-./src/pairsnp
-./conda_builds/*
+./pairsnp
