@@ -1,40 +1,38 @@
-EXE="../src/pairsnp"
+EXE="../pairsnp"
 
 echo "check version"
 $EXE -v
 
 echo "check good"
 $EXE ./good.aln > temp.txt
-cmp temp.txt test_good.txt
+cmp temp.txt good.out
 
 echo "check sparse"
 $EXE -s ./good.aln > temp.txt
-cmp temp.txt test_sparse.txt
+cmp temp.txt sparse.out
 
 echo "check filter"
 $EXE -s -d 2 ./good.aln > temp.txt
-cmp temp.txt test_filter.txt
+cmp temp.txt filter.out
 
 echo "check singleton"
 $EXE ./singleton.aln > temp.txt
-cmp temp.txt test_singleton.txt
+cmp temp.txt singleton.out
 
 echo "check lowercase"
 $EXE ./lowercase.aln > temp.txt
-cmp temp.txt test_lowercase.txt
+cmp temp.txt lowercase.out
 
 echo "check ambig"
 $EXE ./ambig.aln > temp.txt
-cmp temp.txt test_ambig.txt
+cmp temp.txt ambig.out
 
-$EXE -n ./ambig.aln > temp.txt
-cmp temp.txt test_ambig_with_n.txt
-
+echo "check ambig2"
 $EXE ./ambig_cons.aln > temp.txt
-cmp temp.txt test_ambig_cons.txt
+cmp temp.txt ambig_cons.out
 
 echo "check bad"
 $EXE ./bad.aln > temp.txt || true
-cmp temp.txt test_bad.txt
+cmp temp.txt bad.out
 
 rm temp.txt

@@ -34,7 +34,6 @@ check: $(EXE)
 	./$(EXE) -qb -a $(TESTDIR)/ambig.aln | diff -bB - $(TESTDIR)/ambig-a.res
 	./$(EXE) -qbcm $(TESTDIR)/good.aln | diff -bB - $(TESTDIR)/good-c-m.res
 	./$(EXE) -qb    $(TESTDIR)/ambig.aln | diff -bB - $(TESTDIR)/ambig.res
-#	./$(EXE) $(TESTDIR)/huge.aln.gz > /dev/null
 
 format:
 	clang-format -i src/main.cpp

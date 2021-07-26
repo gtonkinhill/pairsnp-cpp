@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 
     // check sequence length
     if ((n_seqs>0) && (seq->seq.l != seq_length)){
-      std::cerr << "Error: incorrect FASTA format, variable sequence lengths!" << seq->name.s << "\n";
+      std::cerr << "Error: incorrect FASTA format, variable sequence lengths! " << seq->name.s << "\n";
       return 1;
     }
     seq_length = seq->seq.l;
@@ -247,15 +247,15 @@ int main(int argc, char *argv[])
     if (sparse){
       for (size_t j=start; j < n_seqs; j++) {
         if ((dist==-1) || (comp_snps[j] <= dist)){
-          printf("%d%c%d%c%d\n", int(i), sep, int(j), sep, comp_snps[j]);
+          std::cout << seq_names[i] << sep << seq_names[j] << sep << comp_snps[j] << std::endl;
         }
       }
     } else {
-      printf("%s", seq_names[i].c_str());
+      std::cout << seq_names[i];
       for (size_t j=0; j < n_seqs; j++) {
-        printf("%c%d", sep, comp_snps[j]);
+        std::cout << sep << comp_snps[j];
       }
-      printf("\n");
+      std::cout << std::endl;
     }
   }
 
