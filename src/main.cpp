@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <getopt.h>
+#include <zlib.h>
 #include <iostream>
 #include <fcntl.h>
 #include <vector>
 #include <iterator>
 #include <string>
+
 #include "kseq.h"
 
 #ifdef _OPENMP
@@ -17,6 +19,7 @@
 #include "roaring.hh"
 #include "roaring.c"
 using namespace roaring;
+KSEQ_INIT(gzFile, gzread)
 
 
 #define VERSION "0.3.0"
@@ -72,23 +75,14 @@ int main(int argc, char *argv[])
   // say hello
   if (!quiet) fprintf(stderr, "This is %s %s\n", EXENAME, VERSION);
 
-  // open filename via libz
-  int fp = open(fasta, O_RDONLY);
-  if (! fp) {
-    fprintf(stderr, "ERROR: Could not open filename '%s'\n", fasta);
-    exit(EXIT_FAILURE);
-  }
+  // open filename and initialise kseq
+  int l;
+  gzFile fp = gzopen(fasta, "r");
+  kseq_t * seq = kseq_init(fp);
 
   //Initially run through fasta to get SNPS not matching reference
   size_t n_seqs = 0;
-  int l=0;
-  kseq seq;
-  FunctorRead r;
-  kstream<int, FunctorRead> ks(fp, r);
-
-  // Use first sequence to set size of arrays
-  l = ks.read(seq);
-  size_t seq_length = seq.seq.length();
+  size_t seq_length;
 
   // initialise roaring bitmaps
   std::vector<std::string> seq_names;
@@ -97,8 +91,28 @@ int main(int argc, char *argv[])
   std::vector<Roaring> G_snps;
   std::vector<Roaring> T_snps;
 
-  do {
-    seq_names.push_back(seq.name);
+  while(true) {
+    l = kseq_read(seq);
+
+    if (l == -1)  // end of file
+        break;
+    if (l == -2) {
+        std::cerr << "Error: incorrect FASTA format" << seq->name.s << "\n";
+        return 1;
+    }
+    if (l == -3) {
+        std::cerr << "Error reading " << fasta << "\n";
+        return 1;
+    }
+
+    // check sequence length
+    if ((n_seqs>0) && (seq->seq.l != seq_length)){
+      std::cerr << "Error: incorrect FASTA format, variable sequence lengths!" << seq->name.s << "\n";
+      return 1;
+    }
+    seq_length = seq->seq.l;
+
+    seq_names.push_back(seq->name.s);
     Roaring As;
     Roaring Cs;
     Roaring Gs;
@@ -106,7 +120,7 @@ int main(int argc, char *argv[])
 
     for(size_t j=0; j<seq_length; j++){
 
-      switch(std::toupper(seq.seq[j])){
+      switch(std::toupper(seq->seq.s[j])){
         case 'A': As.add(j); break;
         case 'C': Cs.add(j); break;
         case 'G': Gs.add(j); break;
@@ -186,8 +200,9 @@ int main(int argc, char *argv[])
     T_snps.push_back(Ts);
 
     n_seqs++;
-  } while((l = ks.read(seq)) >= 0);
-  close(fp);
+  }
+  kseq_destroy(seq);
+  gzclose(fp);
 
   if((knn!=-1) && (knn>=int(n_seqs))){
       fprintf(stderr, "kNN > number of samples. Running in dense mode!\n" );
