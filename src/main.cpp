@@ -37,7 +37,7 @@ void show_help(int retcode)
   fprintf(out, "  -d\tDistance threshold for sparse output. Only distances <= d will be returned.\n");
   fprintf(out, "  -k\tWill on return the k nearest neighbours for each sample in sparse output.\n");
   fprintf(out, "  -c\tOutput CSV instead of TSV\n");
-  fprintf(out, "  -n\tCount comparisons with Ns (off by default)\n");
+  fprintf(out, "  -i\tOutput sequence index inplace of header (useful for downstream processing)\n");
   fprintf(out, "  -t\tNumber of threads to use (default=1)\n");
   exit(retcode);
 }
@@ -47,14 +47,15 @@ int main(int argc, char *argv[])
 {
 
   // parse command line parameters
-  int opt, quiet=0, csv=0, sparse=0, dist=-1, knn=-1;
+  int opt, quiet=0, csv=0, sparse=0, dist=-1, knn=-1, index=0;
   size_t nthreads=1;
-  while ((opt = getopt(argc, argv, "hqsncvd:t:k:")) != -1) {
+  while ((opt = getopt(argc, argv, "hqsncvid:t:k:")) != -1) {
     switch (opt) {
       case 'h': show_help(EXIT_SUCCESS); break;
       case 'q': quiet=1; break;
       case 'c': csv=1; break;
       case 's': sparse=1; break;
+      case 'i': index=1; break;
       case 'd': dist=atoi(optarg); break;
       case 'k': knn=atoi(optarg); break;
       case 't': nthreads=atoi(optarg); break;
@@ -247,11 +248,26 @@ int main(int argc, char *argv[])
     if (sparse){
       for (size_t j=start; j < n_seqs; j++) {
         if ((dist==-1) || (comp_snps[j] <= dist)){
-          std::cout << seq_names[i] << sep << seq_names[j] << sep << comp_snps[j] << std::endl;
+          if (index) {
+            std::cout << i;
+          } else {
+            std::cout << seq_names[i];
+          }
+          std::cout << sep;
+          if (index) {
+            std::cout << j;
+          } else {
+            std::cout << seq_names[j];
+          }
+          std::cout << sep << comp_snps[j] << std::endl;
         }
       }
     } else {
-      std::cout << seq_names[i];
+      if (index) {
+        std::cout << i;
+      } else {
+        std::cout << seq_names[i];
+      }
       for (size_t j=0; j < n_seqs; j++) {
         std::cout << sep << comp_snps[j];
       }

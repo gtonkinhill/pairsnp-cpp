@@ -35,6 +35,7 @@ check: $(EXE)
 	./$(EXE) $(TESTDIR)/good.aln | diff -bB - $(TESTDIR)/good.out
 	./$(EXE) $(TESTDIR)/good.aln.gz | diff -bB -  $(TESTDIR)/good.out
 	./$(EXE) -s $(TESTDIR)/good.aln | diff -bB - $(TESTDIR)/sparse.out
+	./$(EXE) -s -i $(TESTDIR)/good.aln | diff -bB - $(TESTDIR)/sparse_index.out
 	./$(EXE) -s -d 2 $(TESTDIR)/good.aln | diff -bB - $(TESTDIR)/filter.out
 	./$(EXE) $(TESTDIR)/lowercase.aln | diff -bB - $(TESTDIR)/lowercase.out
 	./$(EXE) $(TESTDIR)/ambig.aln | diff -bB - $(TESTDIR)/ambig.out
