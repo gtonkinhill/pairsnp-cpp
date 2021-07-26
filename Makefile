@@ -1,5 +1,11 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Ofast -std=c++11 
+
+ifdef ompoff
+	CXXFLAGS = -Wall -Wextra -Ofast -std=c++11 
+else
+	CXXFLAGS = -Wall -Wextra -Ofast -std=c++11 -fopenmp
+endif
+ 
 LIBS = -lz -lm -I libs/CRoaringUnityBuild/ -I libs/
 
 EXE = pairsnp
