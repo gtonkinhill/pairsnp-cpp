@@ -226,8 +226,15 @@ int main(int argc, char *argv[])
   for (size_t i = 0; i < n_seqs; i++) {
 
     std::vector<int> comp_snps(n_seqs);
+
+    size_t start;
+    if (sparse && (knn<0)){
+      start = i+1;
+    } else {
+      start = 0;
+    }
     
-    for(size_t j=0; j<n_seqs; j++){
+    for(size_t j=start; j<n_seqs; j++){
 
       Roaring res = A_snps[i] & A_snps[j];
       Roaring intersect = C_snps[i] & C_snps[j];
@@ -242,7 +249,6 @@ int main(int argc, char *argv[])
     }
 
     // if using knn find the distance needed
-    int start;
     if (knn>=0){
       std::vector<int> s_comp = comp_snps;
       std::sort(s_comp.begin(), s_comp.end());
