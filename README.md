@@ -11,19 +11,19 @@ conda install -c bioconda pairsnp
 ```
 
 
-The c++ code relies on a recent version of Armadillo (currently tested on v8.6) and can be built by running
+The c++ code can be built by running
 
 ```
 cd ./pairsnp-cpp/
-./configure
 make
 make install
 ```
 
-The majority of time is spend doing sparse matrix multiplications so linking to a parallelised library for this is likely to improve performance further.
+If your compiler does not have support for open-mp you can run
 
-At the moment there you may need to run `touch ./cpp/*` before compiling to avoid some issues with time stamps.
-
+```
+make ompoff=1
+```
 
 ## Quick Start
 
@@ -49,5 +49,4 @@ OPTIONS
   -c	Output CSV instead of TSV
   -n	Count comparisons with Ns (off by default)
   -t	Number of threads to use (default=1)
-  -b	Blank top left corner cell instead of 'pairsnp 0.1.0'
 ```

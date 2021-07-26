@@ -1,0 +1,31 @@
+name: pairsnp-cpp-CI
+
+on:
+  push:
+    branches:
+    - master
+    - devel
+  pull_request:
+    branches:
+    - master
+    - devel
+  schedule:
+    - cron:  '1 1 1 * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential
+        make
+        
+    - name: Install
+      run: sudo make install
+
+    - name: Validation Tests
+      run: make check
+
+
