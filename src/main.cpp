@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
   #pragma omp parallel for ordered shared(A_snps, C_snps \
     , G_snps, T_snps, seq_length \
     , n_seqs, seq_names, dist, sep, sparse \
-    , knn) default(none) schedule(static,1) num_threads(nthreads)
+    , knn, index) default(none) schedule(static,1) num_threads(nthreads)
   for (size_t i = 0; i < n_seqs; i++) {
 
     std::vector<int> comp_snps(n_seqs);
