@@ -264,29 +264,22 @@ int main(int argc, char *argv[])
       for (size_t j=start; j < n_seqs; j++) {
         if ((dist==-1) || (comp_snps[j] <= dist)){
           if (index) {
-            std::cout << i;
+            std::printf("%d%c%d%c%d\n", i, sep, j, sep, comp_snps[j]);
           } else {
-            std::cout << seq_names[i];
+            std::printf("%s%c%s%c%d\n", seq_names[i].c_str(), sep, seq_names[j].c_str(), sep, comp_snps[j]);
           }
-          std::cout << sep;
-          if (index) {
-            std::cout << j;
-          } else {
-            std::cout << seq_names[j];
-          }
-          std::cout << sep << comp_snps[j] << std::endl;
         }
       }
     } else {
       if (index) {
-        std::cout << i;
+        printf("%d", i);
       } else {
-        std::cout << seq_names[i];
+        printf("%s", seq_names[i].c_str());
       }
       for (size_t j=0; j < n_seqs; j++) {
-        std::cout << sep << comp_snps[j];
+        printf("%c%d", sep, comp_snps[j]);
       }
-      std::cout << std::endl;
+      printf("\n");
     }
   }
 
