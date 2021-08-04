@@ -13,7 +13,6 @@
   #include <omp.h>
 #endif
 
-#include <time.h>
 #include <ctime>
 
 #include "roaring.hh"
@@ -45,6 +44,7 @@ void show_help(int retcode)
 
 int main(int argc, char *argv[])
 {
+  time_t start, finish;
 
   // parse command line parameters
   int opt, quiet=0, csv=0, sparse=0, dist=-1, knn=-1, index=0;
@@ -91,7 +91,9 @@ int main(int argc, char *argv[])
   std::vector<Roaring> C_snps;
   std::vector<Roaring> G_snps;
   std::vector<Roaring> T_snps;
+  std::string consensus;
 
+  time(&start);
   while(true) {
     l = kseq_read(seq);
 
@@ -113,6 +115,13 @@ int main(int argc, char *argv[])
     }
     seq_length = seq->seq.l;
 
+    // if (n_seqs==0){
+    //   consensus = seq->seq.s;
+    //   for(size_t j=0; j<seq_length; j++){
+    //     consensus[j] = std::toupper(consensus[j]);
+    //   }
+    // }
+
     seq_names.push_back(seq->name.s);
     Roaring As;
     Roaring Cs;
@@ -121,7 +130,10 @@ int main(int argc, char *argv[])
 
     for(size_t j=0; j<seq_length; j++){
 
-      switch(std::toupper(seq->seq.s[j])){
+      seq->seq.s[j] = std::toupper(seq->seq.s[j]);
+      // if (consensus[j]==seq->seq.s[j]) continue;
+
+      switch(seq->seq.s[j]){
         case 'A': As.add(j); break;
         case 'C': Cs.add(j); break;
         case 'G': Gs.add(j); break;
@@ -191,13 +203,13 @@ int main(int argc, char *argv[])
 
       }
     }
-    As.runOptimize();
+    // As.runOptimize();
     A_snps.push_back(As);
-    Cs.runOptimize();
+    // Cs.runOptimize();
     C_snps.push_back(Cs);
-    Gs.runOptimize();
+    // Gs.runOptimize();
     G_snps.push_back(Gs);
-    Ts.runOptimize();
+    // Ts.runOptimize();
     T_snps.push_back(Ts);
 
     n_seqs++;
@@ -209,6 +221,9 @@ int main(int argc, char *argv[])
       fprintf(stderr, "kNN > number of samples. Running in dense mode!\n" );
       knn = -1;
   }
+
+  time(&finish);
+	std::cerr << "Time required = " << difftime(finish, start) << " seconds";
 
   //If sparse output print sequence names in the header
   if (index){
@@ -226,6 +241,7 @@ int main(int argc, char *argv[])
   for (size_t i = 0; i < n_seqs; i++) {
 
     std::vector<int> comp_snps(n_seqs);
+    Roaring res;
 
     size_t start;
     if (sparse && (knn<0)){
@@ -236,13 +252,10 @@ int main(int argc, char *argv[])
     
     for(size_t j=start; j<n_seqs; j++){
 
-      Roaring res = A_snps[i] & A_snps[j];
-      Roaring intersect = C_snps[i] & C_snps[j];
-      res = res | intersect;
-      intersect = G_snps[i] & G_snps[j];
-      res = res | intersect;
-      intersect = T_snps[i] & T_snps[j];
-      res = res | intersect;
+      res = A_snps[i] & A_snps[j];
+      res |= C_snps[i] & C_snps[j];
+      res |= G_snps[i] & G_snps[j];
+      res |= T_snps[i] & T_snps[j];
 
       comp_snps[j] = seq_length - res.cardinality();
 
