@@ -20,9 +20,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install build-essential
-          
-      - name: Install
+      
+      - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Install
         run: |
           make
           sudo make install
