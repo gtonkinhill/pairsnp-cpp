@@ -22,6 +22,7 @@ jobs:
           sudo apt-get install build-essential
           
       - name: Install
+        uses: actions/checkout@v2
         run: |
           make
           sudo make install
