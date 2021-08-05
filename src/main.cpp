@@ -13,7 +13,7 @@
   #include <omp.h>
 #endif
 
-#include "dynamic_bitset.hpp"
+#include <dynamic_bitset.hpp>
 
 
 KSEQ_INIT(gzFile, gzread)
