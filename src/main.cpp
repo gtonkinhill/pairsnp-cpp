@@ -13,11 +13,9 @@
   #include <omp.h>
 #endif
 
-#include <ctime>
+#include <dynamic_bitset.hpp>
 
-#include "roaring.hh"
-#include "roaring.c"
-using namespace roaring;
+
 KSEQ_INIT(gzFile, gzread)
 
 
@@ -44,7 +42,6 @@ void show_help(int retcode)
 
 int main(int argc, char *argv[])
 {
-  time_t start, finish;
 
   // parse command line parameters
   int opt, quiet=0, csv=0, sparse=0, dist=-1, knn=-1, index=0;
@@ -87,13 +84,12 @@ int main(int argc, char *argv[])
 
   // initialise roaring bitmaps
   std::vector<std::string> seq_names;
-  std::vector<Roaring> A_snps;
-  std::vector<Roaring> C_snps;
-  std::vector<Roaring> G_snps;
-  std::vector<Roaring> T_snps;
+  std::vector<boost::dynamic_bitset<>> A_snps;
+  std::vector<boost::dynamic_bitset<>> C_snps;
+  std::vector<boost::dynamic_bitset<>> G_snps;
+  std::vector<boost::dynamic_bitset<>> T_snps;
   std::string consensus;
 
-  time(&start);
   while(true) {
     l = kseq_read(seq);
 
@@ -115,90 +111,82 @@ int main(int argc, char *argv[])
     }
     seq_length = seq->seq.l;
 
-    // if (n_seqs==0){
-    //   consensus = seq->seq.s;
-    //   for(size_t j=0; j<seq_length; j++){
-    //     consensus[j] = std::toupper(consensus[j]);
-    //   }
-    // }
-
     seq_names.push_back(seq->name.s);
-    Roaring As;
-    Roaring Cs;
-    Roaring Gs;
-    Roaring Ts;
+    boost::dynamic_bitset<> As(seq_length);
+    boost::dynamic_bitset<> Cs(seq_length);
+    boost::dynamic_bitset<> Gs(seq_length);
+    boost::dynamic_bitset<> Ts(seq_length);
 
     for(size_t j=0; j<seq_length; j++){
 
       seq->seq.s[j] = std::toupper(seq->seq.s[j]);
-      // if (consensus[j]==seq->seq.s[j]) continue;
 
       switch(seq->seq.s[j]){
-        case 'A': As.add(j); break;
-        case 'C': Cs.add(j); break;
-        case 'G': Gs.add(j); break;
-        case 'T': Ts.add(j); break;
+        case 'A': As[j] = 1; break;
+        case 'C': Cs[j] = 1; break;
+        case 'G': Gs[j] = 1; break;
+        case 'T': Ts[j] = 1; break;
 
         // M = A or C
-        case 'M': As.add(j); 
-          Cs.add(j);
+        case 'M': As[j] = 1; 
+          Cs[j] = 1;
           break;
 
         // R = A or G
-        case 'R': As.add(j); 
-          Gs.add(j);
+        case 'R': As[j] = 1; 
+          Gs[j] = 1;
           break;
 
         // W = A or T
-        case 'W': As.add(j); 
-          Ts.add(j);
+        case 'W': As[j] = 1; 
+          Ts[j] = 1;
           break;
 
         // S = C or G
-        case 'S': Cs.add(j); 
-          Gs.add(j);
+        case 'S': Cs[j] = 1; 
+          Gs[j] = 1;
           break;
 
         // Y = C or T
-        case 'Y': Cs.add(j); 
-          Ts.add(j);
+        case 'Y': Cs[j] = 1; 
+          Ts[j] = 1;
           break;
 
         // K = G or T
-        case 'K': Gs.add(j); 
-          Ts.add(j);
+        case 'K': Gs[j] = 1; 
+          Ts[j] = 1;
           break;
 
         // V = A,C or G
-        case 'V': As.add(j); 
-          Cs.add(j); 
-          Gs.add(j);
+        case 'V': As[j] = 1; 
+          Cs[j] = 1; 
+          Gs[j] = 1;
           break;
 
         // H = A,C or T
-        case 'H': As.add(j); 
-          Cs.add(j); 
-          Ts.add(j);
+        case 'H': As[j] = 1; 
+          Cs[j] = 1; 
+          Ts[j] = 1;
           break;
         
         // D = A,G or T
-        case 'D': As.add(j);
-          Gs.add(j); 
-          Ts.add(j);
+        case 'D': As[j] = 1;
+          Gs[j] = 1; 
+          Ts[j] = 1;
           break;
 
         // B = C,G or T
-        case 'B': Cs.add(j);
-          Gs.add(j); 
-          Ts.add(j);
+        case 'B': Cs[j] = 1;
+          Gs[j] = 1; 
+          Ts[j] = 1;
           break;
 
         // N = A,C,G or T
         default:  
-          As.add(j);
-          Cs.add(j);
-          Gs.add(j); 
-          Ts.add(j);
+          As[j] = 1;
+          Cs[j] = 1;
+          Gs[j] = 1; 
+          Ts[j] = 1;
           break;
 
       }
@@ -221,10 +209,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "kNN > number of samples. Running in dense mode!\n" );
       knn = -1;
   }
-
-  time(&finish);
-	std::cerr << "Time required = " << difftime(finish, start) << " seconds";
-
+  
   //If sparse output print sequence names in the header
   if (index){
     std::cout << '#' << sep;
@@ -241,7 +226,7 @@ int main(int argc, char *argv[])
   for (size_t i = 0; i < n_seqs; i++) {
 
     std::vector<int> comp_snps(n_seqs);
-    Roaring res;
+    boost::dynamic_bitset<> res(seq_length);
 
     size_t start;
     if (sparse && (knn<0)){
@@ -257,7 +242,7 @@ int main(int argc, char *argv[])
       res |= G_snps[i] & G_snps[j];
       res |= T_snps[i] & T_snps[j];
 
-      comp_snps[j] = seq_length - res.cardinality();
+      comp_snps[j] = seq_length - res.count();
 
     }
 
