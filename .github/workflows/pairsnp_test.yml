@@ -20,9 +20,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install build-essential
-          make
           
       - name: Install
+        run: make
         run: sudo make install
 
       - name: Validation Tests
