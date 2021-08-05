@@ -22,8 +22,9 @@ jobs:
           sudo apt-get install build-essential
           
       - name: Install
-        run: make
-        run: sudo make install
+        run: |
+          make
+          sudo make install
 
       - name: Validation Tests
         run: make check
