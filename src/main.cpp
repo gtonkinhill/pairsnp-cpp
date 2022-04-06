@@ -2,9 +2,7 @@
 #include <getopt.h>
 #include <zlib.h>
 #include <iostream>
-#include <fcntl.h>
-#include <vector>
-#include <iterator>
+#include <vector> 
 #include <string>
 
 #include "kseq.h"
@@ -19,7 +17,7 @@
 KSEQ_INIT(gzFile, gzread)
 
 
-#define VERSION "0.3.0"
+#define VERSION "0.3.1"
 #define EXENAME "pairsnp"
 
 void show_help(int retcode)
@@ -191,13 +189,9 @@ int main(int argc, char *argv[])
 
       }
     }
-    // As.runOptimize();
     A_snps.push_back(As);
-    // Cs.runOptimize();
     C_snps.push_back(Cs);
-    // Gs.runOptimize();
     G_snps.push_back(Gs);
-    // Ts.runOptimize();
     T_snps.push_back(Ts);
 
     n_seqs++;

@@ -1,12 +1,12 @@
 CXX = g++
 
 ifdef ompoff
-	CXXFLAGS = -Wall -Wextra -Ofast -std=c++11 
+	CXXFLAGS += -Wall -Wextra -Ofast -std=c++11 
 else
-	CXXFLAGS = -Wall -Wextra -Ofast -std=c++11 -fopenmp
+	CXXFLAGS += -Wall -Wextra -Ofast -std=c++11 -fopenmp
 endif
  
-LIBS = -lz -lm -I libs/ -I libs/boost/
+LIBS += -lz -lm -I libs/ -I libs/boost/
 
 EXE = pairsnp
 PREFIX = /usr/local
