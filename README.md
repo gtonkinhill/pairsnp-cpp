@@ -1,6 +1,6 @@
 # pairsnp-c++
 
-[![pairsnp-CI](https://github.com/gtonkinhill/pairsnp-cpp/workflows/pairsnp-cpp-CI/badge.svg)](https://github.com/gtonkinhill/pairsnp-cpp/actions)
+[![pairsnp-CI](https://github.com/gtonkinhill/pairsnp-cpp/actions/workflows/pairsnp_test.yml/badge.svg)](https://github.com/gtonkinhill/pairsnp-cpp/actions/workflows/pairsnp_test.yml)
 
 ## Installation
 
