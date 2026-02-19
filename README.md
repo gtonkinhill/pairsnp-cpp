@@ -2,6 +2,8 @@
 
 [![pairsnp-CI](https://github.com/gtonkinhill/pairsnp-cpp/actions/workflows/pairsnp_test.yml/badge.svg)](https://github.com/gtonkinhill/pairsnp-cpp/actions/workflows/pairsnp_test.yml)
 
+This c++ version makes use of fast bitset operations to speed up distance calculations. 
+
 ## Installation
 
 The c++ version can be installed manually or with conda as
